@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculadora Científica</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    .calculator {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 24px;
+      width: 380px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .display {
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      text-align: right;
+      min-height: 96px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .display .expression {
+      color: rgba(255, 255, 255, 0.45);
+      font-size: 14px;
+      min-height: 18px;
+      word-break: break-all;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .display .result {
+      color: #e0e0e0;
+      font-size: 36px;
+      font-weight: 300;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 14px 6px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform 0.08s, opacity 0.08s, box-shadow 0.08s;
+      outline: none;
+      color: #fff;
+    }
+
+    button:active { transform: scale(0.93); opacity: 0.85; }
+
+    /* Number keys */
+    .btn-num {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .btn-num:hover { background: rgba(255, 255, 255, 0.18); }
+
+    /* Operator keys */
+    .btn-op {
+      background: rgba(100, 160, 255, 0.25);
+      border: 1px solid rgba(100, 160, 255, 0.2);
+    }
+    .btn-op:hover { background: rgba(100, 160, 255, 0.4); }
+
+    /* Function keys */
+    .btn-fn {
+      background: rgba(120, 80, 200, 0.35);
+      border: 1px solid rgba(120, 80, 200, 0.25);
+      font-size: 13px;
+    }
+    .btn-fn:hover { background: rgba(120, 80, 200, 0.55); }
+
+    /* Equals */
+    .btn-eq {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border: none;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    .btn-eq:hover { box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6); }
+
+    /* Clear / special */
+    .btn-clear {
+      background: rgba(255, 80, 80, 0.35);
+      border: 1px solid rgba(255, 80, 80, 0.25);
+    }
+    .btn-clear:hover { background: rgba(255, 80, 80, 0.55); }
+
+    .btn-secondary {
+      background: rgba(255, 200, 80, 0.25);
+      border: 1px solid rgba(255, 200, 80, 0.2);
+      font-size: 13px;
+    }
+    .btn-secondary:hover { background: rgba(255, 200, 80, 0.4); }
+
+    .span2 { grid-column: span 2; }
+
+    .error { color: #ff6b6b !important; }
+  </style>
+</head>
+<body>
+  <div class="calculator">
+    <div class="display">
+      <div class="expression" id="expression"></div>
+      <div class="result" id="result">0</div>
+    </div>
+    <div class="buttons">
+      <!-- Row 1: scientific functions -->
+      <button class="btn-fn" data-action="fn" data-fn="sin">sin</button>
+      <button class="btn-fn" data-action="fn" data-fn="cos">cos</button>
+      <button class="btn-fn" data-action="fn" data-fn="tan">tan</button>
+      <button class="btn-fn" data-action="fn" data-fn="log">log</button>
+      <button class="btn-fn" data-action="fn" data-fn="ln">ln</button>
+
+      <!-- Row 2: more scientific -->
+      <button class="btn-fn" data-action="fn" data-fn="sqrt">√</button>
+      <button class="btn-fn" data-action="fn" data-fn="cbrt">∛</button>
+      <button class="btn-fn" data-action="fn" data-fn="pow2">x²</button>
+      <button class="btn-fn" data-action="fn" data-fn="pow3">x³</button>
+      <button class="btn-fn" data-action="fn" data-fn="powN">xʸ</button>
+
+      <!-- Row 3: more functions + clear -->
+      <button class="btn-fn" data-action="pi">π</button>
+      <button class="btn-fn" data-action="e">e</button>
+      <button class="btn-fn" data-action="fn" data-fn="abs">|x|</button>
+      <button class="btn-fn" data-action="fn" data-fn="inv">1/x</button>
+      <button class="btn-fn" data-action="fn" data-fn="neg">+/-</button>
+
+      <!-- Row 4: clear, back, parens, percent, divide -->
+      <button class="btn-clear span2" data-action="clear">AC</button>
+      <button class="btn-secondary" data-action="back">⌫</button>
+      <button class="btn-secondary" data-action="percent">%</button>
+      <button class="btn-op" data-action="op" data-op="/">÷</button>
+
+      <!-- Row 5: 7 8 9 * -->
+      <button class="btn-num" data-action="digit" data-digit="7">7</button>
+      <button class="btn-num" data-action="digit" data-digit="8">8</button>
+      <button class="btn-num" data-action="digit" data-digit="9">9</button>
+      <button class="btn-op" data-action="op" data-op="**">xʸ</button>
+      <button class="btn-op" data-action="op" data-op="*">×</button>
+
+      <!-- Row 6: 4 5 6 - -->
+      <button class="btn-num" data-action="digit" data-digit="4">4</button>
+      <button class="btn-num" data-action="digit" data-digit="5">5</button>
+      <button class="btn-num" data-action="digit" data-digit="6">6</button>
+      <button class="btn-op" data-action="paren" data-p="(">(</button>
+      <button class="btn-op" data-action="op" data-op="-">−</button>
+
+      <!-- Row 7: 1 2 3 + -->
+      <button class="btn-num" data-action="digit" data-digit="1">1</button>
+      <button class="btn-num" data-action="digit" data-digit="2">2</button>
+      <button class="btn-num" data-action="digit" data-digit="3">3</button>
+      <button class="btn-op" data-action="paren" data-p=")">)</button>
+      <button class="btn-op" data-action="op" data-op="+">+</button>
+
+      <!-- Row 8: 0 . = -->
+      <button class="btn-num span2" data-action="digit" data-digit="0">0</button>
+      <button class="btn-num" data-action="dot">.</button>
+      <button class="btn-eq span2" data-action="equals">=</button>
+    </div>
+  </div>
+
+  <script>
+    const display = document.getElementById('result');
+    const exprEl = document.getElementById('expression');
+
+    let current = '0';
+    let expression = '';
+    let justEvaluated = false;
+
+    function updateDisplay() {
+      display.classList.remove('error');
+      display.textContent = current.length > 15 ? parseFloat(current).toExponential(6) : current;
+      exprEl.textContent = expression;
+    }
+
+    function appendDigit(d) {
+      if (justEvaluated) { current = d; expression = ''; justEvaluated = false; return; }
+      if (current === '0' && d !== '.') current = d;
+      else if (current.length < 15) current += d;
+    }
+
+    function appendDot() {
+      if (justEvaluated) { current = '0.'; expression = ''; justEvaluated = false; return; }
+      if (!current.includes('.')) current += '.';
+    }
+
+    function applyOp(op) {
+      if (justEvaluated) { expression = current + ' ' + opSymbol(op) + ' '; current = '0'; justEvaluated = false; return; }
+      expression += current + ' ' + opSymbol(op) + ' ';
+      current = '0';
+    }
+
+    function opSymbol(op) {
+      return { '*': '×', '/': '÷', '+': '+', '-': '−', '**': 'xʸ' }[op] ?? op;
+    }
+
+    function applyParen(p) {
+      expression += current + p;
+      current = '0';
+    }
+
+    function applyPercent() {
+      const n = parseFloat(current);
+      if (!isNaN(n)) current = String(n / 100);
+    }
+
+    function applyFn(fn) {
+      const n = parseFloat(current);
+      const RAD = Math.PI / 180;
+      const ops = {
+        sin:  () => Math.sin(n * RAD),
+        cos:  () => Math.cos(n * RAD),
+        tan:  () => Math.tan(n * RAD),
+        log:  () => Math.log10(n),
+        ln:   () => Math.log(n),
+        sqrt: () => Math.sqrt(n),
+        cbrt: () => Math.cbrt(n),
+        pow2: () => Math.pow(n, 2),
+        pow3: () => Math.pow(n, 3),
+        powN: () => { expression = current + ' ** '; current = '0'; return null; },
+        abs:  () => Math.abs(n),
+        inv:  () => 1 / n,
+        neg:  () => -n,
+      };
+      if (!ops[fn]) return;
+      const res = ops[fn]();
+      if (res === null) return;
+      current = String(+res.toFixed(10));
+      justEvaluated = false;
+    }
+
+    function calculate() {
+      const expr = expression + current;
+      expression = expr + ' =';
+      try {
+        // Safe evaluation: only allow digits, whitespace, and math operators/symbols
+        const sanitized = expr.replace(/\*\*/g, '');
+        if (!/^[\d\s+\-*/.()\-%]+$/.test(sanitized)) throw new Error('Invalid expression');
+        // eslint-disable-next-line no-new-func
+        const result = Function('"use strict"; return (' + expr + ')')();
+        if (!isFinite(result)) throw new Error('Infinity');
+        current = String(+result.toFixed(10));
+        justEvaluated = true;
+      } catch {
+        display.classList.add('error');
+        current = 'Error';
+        expression = '';
+        justEvaluated = true;
+      }
+    }
+
+    function clearAll() {
+      current = '0';
+      expression = '';
+      justEvaluated = false;
+    }
+
+    function backspace() {
+      if (justEvaluated) { clearAll(); return; }
+      current = current.length > 1 ? current.slice(0, -1) : '0';
+    }
+
+    document.querySelector('.buttons').addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const { action, digit, op, fn, p } = btn.dataset;
+
+      switch (action) {
+        case 'digit':   appendDigit(digit); break;
+        case 'dot':     appendDot(); break;
+        case 'op':      applyOp(op); break;
+        case 'paren':   applyParen(p); break;
+        case 'percent': applyPercent(); break;
+        case 'fn':      applyFn(fn); break;
+        case 'pi':      current = String(Math.PI); break;
+        case 'e':       current = String(Math.E); break;
+        case 'equals':  calculate(); break;
+        case 'clear':   clearAll(); break;
+        case 'back':    backspace(); break;
+      }
+      updateDisplay();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key >= '0' && e.key <= '9') { appendDigit(e.key); }
+      else if (e.key === '.') { appendDot(); }
+      else if (['+', '-', '*', '/'].includes(e.key)) { applyOp(e.key); }
+      else if (e.key === 'Enter' || e.key === '=') { calculate(); }
+      else if (e.key === 'Backspace') { backspace(); }
+      else if (e.key === 'Escape') { clearAll(); }
+      else if (e.key === '%') { applyPercent(); }
+      else return;
+      updateDisplay();
+    });
+
+    updateDisplay();
+  </script>
+</body>
+</html>
